@@ -1,38 +1,49 @@
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Formik, Form, Field, ErrorMessage } from "formik";
 import { object, string } from "yup";
+import axios from "axios";
 import styles from "./SignUp.module.css";
 
 const SignUp = () => {
+
+    const navigate = useNavigate();
+
     const schema = object().shape({
         username: string().min(4),
-        email: string().email(),
-        password: string().min(8)
+        password: string().min(4)
     });
+
+    const handleValidate = (values) => {
+        const errors = {};
+
+        if (values.passwordRepeat !== values.password) {
+            errors.passwordRepeat = "Password must be the same";
+        }
+
+        Object.keys(values).map((key) => {
+            if (!values[key]) {
+                errors[key] = "Required";
+            }
+        });
+
+        return errors;
+    }
+
+    const handleSubmit = (values) => {
+        axios.post("/api/v1/signup", {username: values.username, password: values.password})
+            .then(response => {
+                localStorage.setItem("token", response.data.token);
+                navigate("main");
+            });
+    }
     
     return (
         <>
             <Formik
-             initialValues={{username: "", email: "", password: "", passwordRepeat: ""}}
+             initialValues={{username: "", password: "", passwordRepeat: ""}}
              validationSchema={schema}
-             validate={values => {
-                const errors = {};
-                
-                console.log(Object.keys(values));
-
-                if (values.passwordRepeat !== values.password) {
-                    errors.passwordRepeat = "Password must be the same";
-                }
-
-                Object.keys(values).map((key) => {
-                    if (!values[key]) {
-                        errors[key] = "Required";
-                    }
-                });
-
-                return errors;
-             }}
-             onSubmit={console.log("Submited")}
+             validate={values => handleValidate(values)}
+             onSubmit={values => handleSubmit(values)}
             >
                 <Form className={styles.authorization}>
                     <h2>Sign Up</h2>
@@ -40,11 +51,6 @@ const SignUp = () => {
                     <div className={styles.inputContainer}>
                         <ErrorMessage className={styles.error} name="username" component="div"/>
                         <Field className={styles.input} type="text" name="username" placeholder="Username" />
-                    </div>
-
-                    <div className={styles.inputContainer}>
-                        <ErrorMessage className={styles.error} name="email" component="div"/>
-                        <Field className={styles.input} type="email" name="email" placeholder="Email" />
                     </div>
 
                     <div className={styles.inputContainer}>
